@@ -6,14 +6,14 @@ import path from 'path';
 
 export async function PUT(request: Request) {
     try {
-        const { folderName, currentPath } = await request.json();
+        const { folderName, currentPath , currentUid} = await request.json();
         let directoryPath: string;
 
         // Construct the directory path based on the current path
         if (currentPath === "") {
-            directoryPath = "./public/cloud";
+            directoryPath = `./public/${currentUid}`;
         } else {
-            directoryPath = `./public/cloud/${currentPath}`;
+            directoryPath = `./public/${currentUid}/${currentPath}`;
         }
 
         // Create the directory

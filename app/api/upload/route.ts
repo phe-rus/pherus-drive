@@ -11,8 +11,9 @@ export async function POST(request: Request) {
     const chunkIndex = parseInt(formData.get("chunkIndex") as string);
     const filename = formData.get("filename") as string;
     const currentPath = formData.get("currentPath") as string;
+    const uid = formData.get("uid") as string;
 
-    const uploadDir = currentPath ? `./public/cloud/${currentPath}` : "./public/cloud";
+    const uploadDir = currentPath ? `./public/${uid}/${currentPath}` : `./public/${uid}`;
     const filePath = path.join(uploadDir, filename);
 
     try {

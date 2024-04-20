@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.0.4",
+    "@radix-ui/react-checkbox": "^1.0.4",
     "@radix-ui/react-context-menu": "^2.1.5",
     "@radix-ui/react-dialog": "^1.0.5",
     "@radix-ui/react-dropdown-menu": "^2.0.6",
@@ -29,6 +30,7 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
     "dotenv": "^16.4.5",
+    "firebase": "^10.11.0",
     "lucide-react": "^0.366.0",
     "material-symbols": "^0.17.1",
     "multer": "^1.4.5-lts.1",
@@ -40,9 +42,11 @@
     "react-resizable-panels": "^2.0.18",
     "sonner": "^1.4.41",
     "tailwind-merge": "^2.2.2",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "vaul": "^0.9.0"
   },
   "devDependencies": {
+    "@types/firebase": "^3.2.1",
     "@types/multer": "^1.4.11",
     "@types/node": "^20",
     "@types/react": "^18",

@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { fontSans } from "@/lib/fonts";
 import { Indicator } from "@/components/theme/indicator";
 import { Toaster } from "@/components/ui/toaster";
+import { Auths } from "@/components/auth/auths";
 
 export const metadata: Metadata = {
   title: "Pherus Drive",
@@ -39,7 +40,9 @@ export default function RootLayout({
       >
         <Provider attribute="class" defaultTheme="system" enableSystem>
           <main className="flex h-screen flex-col w-screen">
-            <div className="flex-1">{children}</div>
+            <Auths>
+              {children}
+            </Auths>
             <Toaster />
             <Indicator />
           </main>
