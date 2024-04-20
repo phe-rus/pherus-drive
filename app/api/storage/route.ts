@@ -10,8 +10,9 @@ interface DirectoryInfo {
     totalOtherFiles: number;
 }
 
-export async function GET(request: Request) {
-    const directoryPath = "./public/cloud";
+export async function PUT(request: Request) {
+    const { uid } = await request.json();
+    const directoryPath = `./public/${uid}`;
     const fullPath = path.join(process.cwd(), directoryPath);
 
     try {

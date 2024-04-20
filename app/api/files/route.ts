@@ -5,18 +5,34 @@ import fs from 'fs';
 import path from 'path';
 
 export async function POST(request: Request) {
-    const currentPath = await request.text();
+    const {currentPath , currentUser } = await request.json();
     let directoryPath: string;
 
-    if (currentPath === "") {
-        directoryPath = "./public/cloud";
+    if (currentPath === "" && currentUser !== "") {
+        directoryPath = `./public/${currentUser}`;
     } else {
-        directoryPath = `./public/cloud/${currentPath}`;
+        directoryPath = `./public/${currentUser}/${currentPath}`;
     }
 
     try {
-        const items = fs.readdirSync(directoryPath).map((item) => {
+        // Check if the directory exists
+        if (!fs.existsSync(directoryPath) || !fs.lstatSync(directoryPath).isDirectory()) {
+            return NextResponse.json({ message: `Directory not found: ${directoryPath}` }, { status: 404 });
+        }
+
+        // Get directory contents
+        const directoryContents = fs.readdirSync(directoryPath);
+        if (directoryContents.length === 0) {
+            // Return an empty array if directory is empty
+            return NextResponse.json([], { status: 200 });
+        }
+
+        // Process directory contents
+        const items = [];
+        for (const item of directoryContents) {
             const itemPath = path.join(directoryPath, item);
+            if (!fs.existsSync(itemPath)) continue; // Skip non-existent files
+
             const stats = fs.statSync(itemPath);
             let fileType;
             if (stats.isDirectory()) {
@@ -45,7 +61,10 @@ export async function POST(request: Request) {
                     case '.jpeg':
                     case '.png':
                     case '.gif':
+                    case '.svg':
                     case '.bmp':
+                    case '.webp':
+                    case '.avif':
                         fileType = 'image';
                         break;
                     default:
@@ -53,12 +72,13 @@ export async function POST(request: Request) {
                         break;
                 }
             }
-            return {
+            items.push({
                 name: item,
                 type: fileType,
                 size: stats.size,
-            };
-        });
+            });
+        }
+
         return NextResponse.json(items, { status: 200 });
     } catch (error) {
         return NextResponse.json(
@@ -68,7 +88,7 @@ export async function POST(request: Request) {
     }
 }
 
-export async function PUT(request: Request) {
+/**export async function PUT(request: Request) {
     try {
         const { oldName, newName, isFolder } = await request.json();
 
@@ -82,4 +102,4 @@ export async function PUT(request: Request) {
         console.error('Error renaming folder/file:', error);
         return NextResponse.json({ message: 'Failed to rename folder/file' }, { status: 500 });
     }
-}
+} **/

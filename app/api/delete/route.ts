@@ -6,14 +6,14 @@ import path from 'path';
 
 export async function DELETE(request: Request) {
     try {
-        const { itemName, itemType, currentPath } = await request.json();
+        const { itemName, itemType, currentPath, uid } = await request.json();
         let itemPath: string;
 
         // Construct the path of the item to be deleted based on the current path
         if (currentPath === "") {
-            itemPath = `./public/cloud/${itemName}`;
+            itemPath = `./public/${uid}/${itemName}`;
         } else {
-            itemPath = `./public/cloud/${currentPath}/${itemName}`;
+            itemPath = `./public/${uid}/${currentPath}/${itemName}`;
         }
 
         // Check if the item exists
@@ -22,11 +22,12 @@ export async function DELETE(request: Request) {
         }
 
         // Delete the item based on its type (file or folder)
-        if (itemType === 'file') {
-            fs.unlinkSync(itemPath); // Delete file
-        } else if (itemType === 'folder') {
+        if (itemType === 'folder') {
             fs.rmdirSync(itemPath, { recursive: true }); // Delete folder recursively
+        } else {
+            fs.unlinkSync(itemPath); // Delete file
         }
+
         return NextResponse.json({ message: 'Deletion successful' }, { status: 200 });
     } catch (error) {
         // Handle errors

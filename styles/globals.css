@@ -56,9 +56,7 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-feature-settings:
-      "rlig" 1,
-      "calt" 1;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
@@ -67,9 +65,39 @@ body::-webkit-scrollbar {
 }
 
 .material-symbols-rounded {
-  font-variation-settings:
-    "FILL" 1,
-    "wght" 700,
-    "GRAD" 200,
-    "opsz" 48;
+  font-variation-settings: "FILL" 1, "wght" 700, "GRAD" 200, "opsz" 48;
+}
+
+.zigzag {
+  position: relative;
+  margin: 0 auto;
+  border-radius: 20px;
+  line-height: 300px;
+  text-align: center;
+  font-size: 20px;
+}
+
+.zigzag:before,
+.zigzag:after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: inherit;
+  border-radius: inherit;
+  height: 100%;
+  width: 100%;
+  z-index: -1;
+}
+.zigzag:before {
+  -webkit-transform: rotate(60deg);
+  -moz-transform: rotate(60deg);
+  transform: rotate(60deg);
+  transition: all 1s 0.5s;
+}
+.zigzag:after {
+  -webkit-transform: rotate(-60deg);
+  -moz-transform: rotate(-60deg);
+  transform: rotate(-60deg);
+  transition: all 1s 1s;
 }

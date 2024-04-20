@@ -8,21 +8,11 @@ import {
   ChevronRight,
   Cloud,
   Cloudy,
-  Copy,
-  CreditCard,
-  Home,
-  icons,
   LineChart,
-  MoreVertical,
-  MoveRight,
-  Package,
-  Package2,
   PanelLeft,
   Search,
   Settings,
-  ShoppingCart,
-  Truck,
-  Users2,
+  X,
 } from "lucide-react"
 import {
   Breadcrumb,
@@ -68,9 +58,14 @@ import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogT
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu"
 import { useToast } from "@/components/ui/use-toast"
 import { ImageUpload } from "@/components/upload/mage-upload"
-import axios from "axios"
 import { DirectoryInfo } from "@/types/directoryinfor"
-import ProgressBar, { Progress } from "@/components/ui/progress"
+import { Progress } from "@/components/ui/progress"
+import { signOut } from "firebase/auth"
+import { auth } from "@/config/config"
+import { decryptData } from "@/components/encryption/encypt"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Theme } from "@/components/theme/theme"
+import { Drawer, DrawerClose, DrawerContent, DrawerTrigger } from "@/components/ui/drawer"
 
 interface FileProp {
   name: string;
@@ -82,6 +77,9 @@ export default function Index() {
   const { toast } = useToast()
   const [currentPath, setPath] = useState("");
   const [dialog, setDialog] = useState(false);
+  const [selectedRoot, setSelectedRoot] = useState("Home")
+  const [currentUid, setCUid] = useState<string>("")
+  const [avatars, setAvatar] = useState<string>("")
   const [isDetectedDragAndDrop, setIsDetectedDragAndDrop] = useState(false);
   const [fileData, setFileData] = useState<FileProp[]>([]);
   const [createdFolderName, createfolder] = useState("")
@@ -91,33 +89,63 @@ export default function Index() {
   const menus = [
     {
       name: "Home",
-      icons: <Cloud />
+      icons: <Cloud className={`h-5 w-5 ${selectedRoot.includes("Home") ? ("stroke-white") : ("stroke-black hover:stroke-black")}`}/>
     }
   ]
 
   // Fetch files from the server and update state
   useEffect(() => {
-    fetchDirectoryInfo();
-    collection(currentPath);
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const userDataString = localStorage.getItem('user_data');
+      if (userDataString) {
+        try {
+          const userData = JSON.parse(userDataString);
+          const decryptedUid = decryptData(userData.uid);
+          const avatarDecrpted = decryptData(userData.avatar);
+
+          setAvatar(avatarDecrpted)
+          setCUid(decryptedUid);
+          fetchDirectoryInfo(decryptedUid);
+          collection(currentPath, decryptedUid);
+        } catch (error) {
+          console.error('Error parsing or decrypting user data:', error);
+        }
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPath]);
 
-  async function fetchDirectoryInfo() {
+  async function fetchDirectoryInfo(uid: string) {
     try {
-      const response = await axios.get('/api/storage');
-      setDirectoryInfo(response.data);
+      const response = await fetch(`/api/storage?uid=${uid}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          uid: uid
+        })
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      const data = await response.json();
+      setDirectoryInfo(data);
     } catch (error) {
       console.error('Error fetching directory information:', error);
     }
   }
 
-  const collection = (currentPath: string) => {
+  const collection = (currentPath: string, currentUId: string | undefined) => {
     fetch('/api/files', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: currentPath, // Correctly stringify the currentPath
+      body: JSON.stringify({
+        currentPath: currentPath,
+        currentUser: currentUId
+      }),
     })
       .then(response => {
         if (!response.ok) {
@@ -130,7 +158,6 @@ export default function Index() {
         return response.json();
       })
       .then(data => {
-        //setFiles(data);
         setFileData(data);
       })
       .catch(error => {
@@ -157,14 +184,15 @@ export default function Index() {
       },
       body: JSON.stringify({
         folderName: createdFolderName,
-        currentPath: currentPath
+        currentPath: currentPath,
+        currentUid: currentUid
       })
     })
       .then(response => {
         if (!response.ok) {
           throw new Error('Failed to fetch files');
         }
-        collection(currentPath);
+        collection(currentPath, currentUid);
         toast({
           title: "Successfully Created Folder",
           description: `Created ${createdFolderName}`,
@@ -187,14 +215,15 @@ export default function Index() {
       body: JSON.stringify({
         itemName: fileName,
         itemType: fileType,
-        currentPath: currentPath
+        currentPath: currentPath,
+        uid: currentUid
       })
     })
       .then(response => {
         if (!response.ok) {
           throw new Error('Failed to fetch files');
         }
-        collection(currentPath);
+        collection(currentPath, currentUid);
         toast({
           title: "Successfully Deleted Folder",
           description: `Deleted ${fileType} ${fileName}`,
@@ -267,7 +296,7 @@ export default function Index() {
         })
 
         console.log(`Chunk ${chunkIndex + 1}/${totalChunks} uploaded successfully`);
-
+        collection(currentPath, currentUid)
         startByte = endByte; // Move to the next chunk
       } catch (error) {
         console.error("Error occurred during chunk upload: ", error);
@@ -310,15 +339,23 @@ export default function Index() {
     setFileData(updatedFileData);
   };
 
+  const handleLogout = async () => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.removeItem('user_data');
+    }
+    await signOut(auth)
+    refreshWebsite()
+  }
+
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
       <aside className="fixed inset-y-0 left-0 z-10 hidden w-14 flex-col border-r bg-background sm:flex">
         <nav className="flex flex-col items-center gap-4 px-2 sm:py-4">
           <Link
             href="#"
-            className="group flex h-9 w-9 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:h-8 md:w-8 md:text-base"
+            className="group flex h-12 w-12 shrink-0 items-center justify-center gap-2 rounded-full bg-violet-500 text-lg font-semibold text-primary-foreground md:h-12 md:w-12 md:text-base"
           >
-            <Cloudy className="h-5 w-5 transition-all group-hover:scale-110" />
+            <Cloudy className="h-8 w-8 transition-all group-hover:scale-110" />
             <span className="sr-only">Pherus Drive</span>
           </Link>
 
@@ -326,13 +363,15 @@ export default function Index() {
             <TooltipProvider key={index}>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Link
-                    href="#"
-                    className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setSelectedRoot(item.name)}
+                    className={`rounded-full ${selectedRoot.includes(item.name) ? ("bg-violet-500 stroke-white") : ("stroke-black")}`}
                   >
                     {item.icons}
                     <span className="sr-only">{item.name}</span>
-                  </Link>
+                  </Button>
                 </TooltipTrigger>
                 <TooltipContent side="right">{item.name}</TooltipContent>
               </Tooltip>
@@ -344,13 +383,15 @@ export default function Index() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Link
-                  href="#"
-                  className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className={`rounded-full ${selectedRoot.includes("Settings") ? ("bg-violet-500") : ("")}`}
+                  onClick={() => setSelectedRoot("Settings")}
                 >
-                  <Settings className="h-5 w-5" />
+                  <Settings className={`h-5 w-5 ${selectedRoot.includes("Settings") ? ("stroke-white") : ("stroke-black hover:stroke-black")}`}/>
                   <span className="sr-only">Settings</span>
-                </Link>
+                </Button>
               </TooltipTrigger>
               <TooltipContent side="right">Settings</TooltipContent>
             </Tooltip>
@@ -385,7 +426,8 @@ export default function Index() {
                   <Button
                     key={index}
                     variant="ghost"
-                    className="flex flex-row gap-3 justify-start h-14 items-center px-2.5 text-foreground"
+                    onClick={() => setSelectedRoot(item.name)}
+                    className={`flex flex-row gap-3 justify-start h-14 items-center px-2.5 text-foreground ${selectedRoot.includes(item.name) ? ("bg-accent") : ("")}`}
                   >
                     {item.icons}
                     {item.name}
@@ -394,7 +436,8 @@ export default function Index() {
 
                 <Button
                   variant="ghost"
-                  className="flex flex-row gap-3 justify-start h-14 items-center px-2.5 text-foreground"
+                  onClick={() => setSelectedRoot("Settings")}
+                  className={`flex flex-row gap-3 justify-start h-14 items-center px-2.5 text-foreground ${selectedRoot.includes("Settings") ? ("bg-accent") : ("")}`}
                 >
                   <LineChart className="h-5 w-5" />
                   Settings
@@ -423,6 +466,7 @@ export default function Index() {
               ))}
             </BreadcrumbList>
           </Breadcrumb>
+
           <div className="relative ml-auto flex-1 md:grow-0">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -431,6 +475,9 @@ export default function Index() {
               className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[320px]"
             />
           </div>
+
+          <Theme />
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -439,7 +486,7 @@ export default function Index() {
                 className="overflow-hidden rounded-full"
               >
                 <Image
-                  src="/next.svg"
+                  src={avatars?.toString()}
                   width={36}
                   height={36}
                   alt="Avatar"
@@ -450,10 +497,10 @@ export default function Index() {
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Settings</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSelectedRoot("Settings")}>Settings</DropdownMenuItem>
               <DropdownMenuItem>Support</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Logout</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleLogout()}>Logout</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </header>
@@ -466,301 +513,411 @@ export default function Index() {
           onDrop={handleDragAndDrop}
         >
           {!isDetectedDragAndDrop && (
-            <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8 lg:grid-cols-3 xl:grid-cols-3">
-              <Breadcrumb className="flex md:hidden">
-                <BreadcrumbList>
-                  <BreadcrumbItem>
-                    <BreadcrumbLink asChild onClick={() => setPath("")}>
-                      <h2>All Files</h2>
-                    </BreadcrumbLink>
-                  </BreadcrumbItem>
-
-                  {currentPath.split('/').map((pathSegment, index, segments) => (
-                    <React.Fragment key={index}>
-                      <BreadcrumbSeparator />
+            <>
+              {selectedRoot.includes("Home") ? (
+                <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8 lg:grid-cols-3 xl:grid-cols-3">
+                  <Breadcrumb className="flex md:hidden">
+                    <BreadcrumbList>
                       <BreadcrumbItem>
-                        <BreadcrumbLink asChild onClick={() => setPath(segments.slice(0, index + 1).join('/'))}>
-                          <h2>{pathSegment}</h2>
+                        <BreadcrumbLink asChild onClick={() => setPath("")}>
+                          <h2>All Files</h2>
                         </BreadcrumbLink>
                       </BreadcrumbItem>
-                    </React.Fragment>
-                  ))}
-                </BreadcrumbList>
-              </Breadcrumb>
-              <div className="grid auto-rows-max items-start gap-4 md:gap-8 lg:col-span-2">
-                <Dialog>
-                  <ContextMenu >
-                    <ContextMenuTrigger className="w-full md:h-screen">
-                      <div className="grid gap-4 grid-cols-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-6 xl:grid-cols-6 h-fit w-full">
-                        {fileData
-                          .sort((a, b) => {
-                            if (a.type === 'folder' && b.type !== 'folder') {
-                              return -1; // Folder comes before non-folder
-                            } else if (a.type !== 'folder' && b.type === 'folder') {
-                              return 1; // Non-folder comes before folder
-                            } else {
-                              return 0; // Keep the order unchanged
-                            }
-                          })
-                          .map((item, index) => (
-                            <ContextMenu key={index}>
-                              <div
-                                x-chunk={`dashboard-05-chunk-${index}`}
-                                draggable={item.type.includes("folder")}
-                                onDragStart={(e) => handleDragStart(e, index)}
-                                onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, index)}
-                                style={{ zIndex: 1 }}
-                                onClick={() => handleClick(item)}
-                                className="flex flex-col">
-                                <ContextMenuTrigger>
-                                  <div className="flex flex-col w-full items-center">
-                                    {item.type.includes("folder") ? (
-                                      <Image
-                                        alt="folder"
-                                        src="/icons/folder.png"
-                                        width={1000}
-                                        height={1000}
-                                        className="w-20 h-20"
-                                      />
-                                    ) : item.type.includes("file") ? (
-                                      <Image
-                                        alt="file"
-                                        src="/icons/markdown.png"
-                                        width={1000}
-                                        height={1000}
-                                        className="w-[80px] h-[70px] mb-1 rounded-[5px]"
-                                      />
-                                    ) : item.type.includes("compressed") ? (
-                                      <Image
-                                        alt="file"
-                                        src="/icons/zip.png"
-                                        width={1000}
-                                        height={1000}
-                                        className="w-[80px] h-[70px] mb-1 rounded-[5px]"
-                                      />
-                                    ) : item.type.includes("video") ? (
-                                      <Image
-                                        alt="file"
-                                        src="/icons/video.png"
-                                        width={1000}
-                                        height={1000}
-                                        className="w-[80px] h-[70px] mb-1 rounded-[5px]"
-                                      />
-                                    ) : item.type.includes("pdf") ? (
-                                      <Image
-                                        alt="file"
-                                        src="/icons/pdf.png"
-                                        width={1000}
-                                        height={1000}
-                                        className="w-[80px] h-[70px] mb-1 rounded-[5px]"
-                                      />
-                                    ) : (
-                                      <Dialog>
-                                        <DialogTrigger>
-                                          {currentPath && currentPath !== "" ? (
-                                            <Image
-                                              alt="file"
-                                              src={`/cloud/${currentPath}/${item.name}`}
-                                              width={1000}
-                                              height={1000}
-                                              className="w-full h-24 rounded-[5px]"
-                                            />
-                                          ) : (
-                                            <Image
-                                              alt="file"
-                                              src={`/cloud/${item.name}`}
-                                              width={1000}
-                                              height={1000}
-                                              className="w-full h-24 rounded-[5px]"
-                                            />
-                                          )}
-                                        </DialogTrigger>
 
-                                        <DialogContent className="p-1 rounded-[8px] shrink-0 shadow-none"
-                                          style={{
-                                            backgroundImage: `url("/cloud/${item.name}") no-repeat center center fixed`,
-                                            backgroundSize: "cover",
-                                            WebkitBackgroundSize: "auto"
-                                          }}>
-                                          <div className="w-full h-full">
-                                            {currentPath && currentPath !== "" ? (
+                      {currentPath.split('/').map((pathSegment, index, segments) => (
+                        <React.Fragment key={index}>
+                          <BreadcrumbSeparator />
+                          <BreadcrumbItem>
+                            <BreadcrumbLink asChild onClick={() => setPath(segments.slice(0, index + 1).join('/'))}>
+                              <h2>{pathSegment}</h2>
+                            </BreadcrumbLink>
+                          </BreadcrumbItem>
+                        </React.Fragment>
+                      ))}
+                    </BreadcrumbList>
+                  </Breadcrumb>
+                  <div className="grid auto-rows-max items-start gap-4 md:gap-8 lg:col-span-2">
+                    <Dialog>
+                      <ContextMenu >
+                        <ContextMenuTrigger className="w-full md:h-screen">
+                          <div className="grid gap-4 grid-cols-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-6 xl:grid-cols-6 h-fit w-full">
+                            {fileData
+                              .sort((a, b) => {
+                                if (a.type === 'folder' && b.type !== 'folder') {
+                                  return -1; // Folder comes before non-folder
+                                } else if (a.type !== 'folder' && b.type === 'folder') {
+                                  return 1; // Non-folder comes before folder
+                                } else {
+                                  return 0; // Keep the order unchanged
+                                }
+                              })
+                              .map((item, index) => (
+                                <ContextMenu key={index}>
+                                  <div
+                                    x-chunk={`dashboard-05-chunk-${index}`}
+                                    draggable={item.type.includes("folder")}
+                                    onDragStart={(e) => handleDragStart(e, index)}
+                                    onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, index)}
+                                    style={{ zIndex: 1 }}
+                                    onClick={() => handleClick(item)}
+                                    className="flex flex-col">
+                                    <ContextMenuTrigger>
+                                      <div className="flex flex-col w-full items-center">
+                                        {item.type.includes("folder") ? (
+                                          <Image
+                                            alt="folder"
+                                            src="/icons/folder.png"
+                                            width={1000}
+                                            height={1000}
+                                            className="w-20 h-20"
+                                          />
+                                        ) : item.type.includes("file") ? (
+                                          <Image
+                                            alt="file"
+                                            src="/icons/markdown.png"
+                                            width={1000}
+                                            height={1000}
+                                            className="w-[80px] h-[70px] mb-1 rounded-[5px]"
+                                          />
+                                        ) : item.type.includes("compressed") ? (
+                                          <Image
+                                            alt="file"
+                                            src="/icons/zip.png"
+                                            width={1000}
+                                            height={1000}
+                                            className="w-[80px] h-[70px] mb-1 rounded-[5px]"
+                                          />
+                                        ) : item.type.includes("video") ? (
+                                          <Image
+                                            alt="file"
+                                            src="/icons/video.png"
+                                            width={1000}
+                                            height={1000}
+                                            className="w-[80px] h-[70px] mb-1 rounded-[5px]"
+                                          />
+                                        ) : item.type.includes("pdf") ? (
+                                          <Drawer>
+                                            <DrawerTrigger>
                                               <Image
                                                 alt="file"
-                                                src={`/cloud/${currentPath}/${item.name}`}
+                                                src="/icons/pdf.png"
                                                 width={1000}
                                                 height={1000}
-                                                className="w-full h-full rounded-[5px]"
+                                                className="w-[80px] h-[70px] mb-1 rounded-[5px]"
                                               />
-                                            ) : (
-                                              <Image
-                                                alt="file"
-                                                src={`/cloud/${item.name}`}
-                                                width={1000}
-                                                height={1000}
-                                                className="w-full h-full rounded-[10px] z-[100]"
-                                              />
-                                            )}
-                                          </div>
-                                        </DialogContent>
-                                      </Dialog>
-                                    )}
-                                    <Label className="text-center w-20 whitespace-normal z-0 line-clamp-1">{item.name.toString()}</Label>
+                                            </DrawerTrigger>
+
+                                            <DrawerContent className="flex flex-col p-0 min-h-screen w-screen">
+                                              {currentPath && currentPath !== "" ? (
+                                                <>
+                                                  <embed src={`/${currentUid}/${currentPath}/${item.name}`} type="application/pdf" className="w-full h-screen p-0 object-contain" />
+                                                  <Button
+                                                    variant="secondary"
+                                                    size="icon"
+                                                    className="absolute top-5 right-0 m-4 p-2 rounded-full z-5"
+                                                  >
+                                                    <DrawerClose>
+                                                      <X />
+                                                    </DrawerClose>
+                                                  </Button>
+                                                </>
+                                              ) : (
+                                                <>
+                                                  <embed src={`/${currentUid}/${item.name}`} type="application/pdf" className="w-full h-screen p-0 object-contain" />
+                                                  <Button
+                                                    variant="secondary"
+                                                    size="icon"
+                                                    className="absolute top-5 right-0 mt-4 mr-3 rounded-full z-5"
+                                                  >
+                                                    <DrawerClose>
+                                                      <X className="stroke-violet-500" />
+                                                    </DrawerClose>
+                                                  </Button>
+                                                </>
+                                              )}
+                                            </DrawerContent>
+                                          </Drawer>
+                                        ) : item.type.includes("image") && !item.name.includes("The requested resource isn't a valid image for") ? (
+                                          <Dialog>
+                                            <DialogTrigger>
+                                              {currentPath && currentPath !== "" ? (
+                                                <Image
+                                                  alt="file"
+                                                  src={`/${currentUid}/${currentPath}/${item.name}`}
+                                                  width={1000}
+                                                  height={1000}
+                                                  loading="lazy"
+                                                  className="w-full h-24 rounded-[5px]"
+                                                />
+                                              ) : (
+                                                <Image
+                                                  alt="file"
+                                                  src={`/${currentUid}/${item.name}`}
+                                                  width={1000}
+                                                  height={1000}
+                                                  loading="lazy"
+                                                  className="w-full h-24 rounded-[5px]"
+                                                />
+                                              )}
+                                            </DialogTrigger>
+
+                                            <DialogContent className="p-1 rounded-[8px] shrink-0 shadow-none"
+                                              style={{
+                                                backgroundImage: `url("/${currentUid}/${item.name}") no-repeat center center fixed`,
+                                                backgroundSize: "cover",
+                                                WebkitBackgroundSize: "auto"
+                                              }}>
+                                              <div className="w-full h-full">
+                                                {currentPath && currentPath !== "" ? (
+                                                  <Image
+                                                    alt="file"
+                                                    src={`/${currentUid}/${currentPath}/${item.name}`}
+                                                    width={1000}
+                                                    height={1000}
+                                                    priority={true}
+                                                    className="w-full h-full rounded-[5px]"
+                                                  />
+                                                ) : (
+                                                  <Image
+                                                    alt="file"
+                                                    src={`/${currentUid}/${item.name}`}
+                                                    width={1000}
+                                                    height={1000}
+                                                    priority={true}
+                                                    className="w-full h-full rounded-[10px] z-[100]"
+                                                  />
+                                                )}
+                                              </div>
+                                            </DialogContent>
+                                          </Dialog>
+                                        ) : (<></>)}
+                                        <Label className="text-center w-20 whitespace-normal z-0 line-clamp-1">{item.name.toString()}</Label>
+                                      </div>
+                                    </ContextMenuTrigger>
                                   </div>
-                                </ContextMenuTrigger>
-                              </div>
 
-                              <ContextMenuContent>
-                                <ContextMenuItem>Rename</ContextMenuItem>
-                                <ContextMenuItem onClick={() => deleteFile(
-                                  item.name,
-                                  item.type
-                                )}>Delete</ContextMenuItem>
-                                <ContextMenuItem>Share</ContextMenuItem>
-                              </ContextMenuContent>
-                            </ContextMenu>
-                          ))}
-                      </div>
-                    </ContextMenuTrigger>
+                                  <ContextMenuContent>
+                                    <ContextMenuItem>Rename</ContextMenuItem>
+                                    <ContextMenuItem onClick={() => deleteFile(
+                                      item.name,
+                                      item.type
+                                    )}>Delete</ContextMenuItem>
+                                    <ContextMenuItem>Share</ContextMenuItem>
+                                  </ContextMenuContent>
+                                </ContextMenu>
+                              ))}
+                          </div>
+                        </ContextMenuTrigger>
 
-                    <ContextMenuContent>
-                      <DialogTrigger className="w-full">
-                        <ContextMenuItem onClick={() => setDialog(false)}>Create Folder</ContextMenuItem>
-                      </DialogTrigger>
+                        <ContextMenuContent>
+                          <DialogTrigger className="w-full">
+                            <ContextMenuItem onClick={() => setDialog(false)}>Create Folder</ContextMenuItem>
+                          </DialogTrigger>
 
-                      <DialogTrigger asChild>
-                        <ContextMenuItem onClick={() => setDialog(true)}>Upload</ContextMenuItem>
-                      </DialogTrigger>
+                          <DialogTrigger asChild>
+                            <ContextMenuItem onClick={() => setDialog(true)}>Upload</ContextMenuItem>
+                          </DialogTrigger>
 
-                      <ContextMenuItem onClick={() => refreshWebsite()}>Refresh</ContextMenuItem>
-                    </ContextMenuContent>
-                  </ContextMenu>
+                          <ContextMenuItem onClick={() => refreshWebsite()}>Refresh</ContextMenuItem>
+                        </ContextMenuContent>
+                      </ContextMenu>
 
-                  {dialog ? (
-                    <DialogContent className="sm:max-w-[425px]">
-                      <DialogHeader>
-                        <DialogTitle className="text-center">
-                          Upload your files
-                        </DialogTitle>
-                      </DialogHeader>
+                      {dialog ? (
+                        <DialogContent className="sm:max-w-[425px]">
+                          <DialogHeader>
+                            <DialogTitle className="text-center">
+                              Upload your files
+                            </DialogTitle>
+                          </DialogHeader>
 
-                      <div className="grid gap-4 py-4">
-                        <ImageUpload currentPath={currentPath} />
-                      </div>
-                    </DialogContent>
-                  ) : (
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Create A Folder</DialogTitle>
-                      </DialogHeader>
-                      <div className="flex flex-col">
-                        <Input
-                          placeholder="Folder Name"
-                          value={createdFolderName}
-                          onChange={(e) => createfolder(e.target.value)}
-                          className="flex rounded-[5px]" />
-                      </div>
+                          <div className="grid gap-4 py-4">
+                            <ImageUpload currentPath={currentPath} uid={currentUid} onComplete={() => collection(currentPath, currentUid)} />
+                          </div>
+                        </DialogContent>
+                      ) : (
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Create A Folder</DialogTitle>
+                          </DialogHeader>
+                          <div className="flex flex-col">
+                            <Input
+                              placeholder="Folder Name"
+                              value={createdFolderName}
+                              onChange={(e) => createfolder(e.target.value)}
+                              className="flex rounded-[5px]" />
+                          </div>
 
-                      <DialogFooter>
-                        <Button variant="outline" size="sm" className="rounded-full"
-                          onClick={() => createFolder()}>
-                          <DialogClose>
-                            Create Folder
-                          </DialogClose>
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  )}
-                </Dialog>
-              </div>
+                          <DialogFooter>
+                            <Button variant="outline" size="sm" className="rounded-full"
+                              onClick={() => createFolder()}>
+                              <DialogClose>
+                                Create Folder
+                              </DialogClose>
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      )}
+                    </Dialog>
+                  </div>
 
-              <div className="md:flex md:flex-col md:w-full hidden">
-                <Card
-                  className="overflow-hidden w-full" x-chunk="dashboard-05-chunk-4"
-                >
-                  <CardHeader className="flex flex-row items-start bg-muted/50">
-                    <div className="grid gap-0.5">
-                      <CardTitle className="group flex items-center gap-2 text-lg">
-                        Pherus Drive
-                      </CardTitle>
-                      <CardDescription>Date: {directoryInfo?.currentDate}</CardDescription>
-                    </div>
+                  <div className="md:flex md:flex-col md:w-full hidden">
+                    <Card
+                      className="overflow-hidden w-full" x-chunk="dashboard-05-chunk-4"
+                    >
+                      <CardHeader className="flex flex-row items-start bg-muted/50">
+                        <div className="grid gap-0.5">
+                          <CardTitle className="group flex items-center gap-2 text-lg">
+                            Pherus Drive
+                          </CardTitle>
+                          <CardDescription>Date: {directoryInfo?.currentDate}</CardDescription>
+                        </div>
 
-                    <div className="ml-auto flex items-center gap-1">
-                      <Button size="sm" variant="outline" className="h-8 gap-1">
-                        <span className="lg:sr-only xl:not-sr-only xl:whitespace-nowrap">
-                          Own Cloud Drive
-                        </span>
-                      </Button>
-                    </div>
-                  </CardHeader>
-
-                  <CardContent className="p-6 text-sm w-full">
-                    <div className="grid gap-3">
-                      <div className="font-semibold">Storage</div>
-                      <ul className="grid gap-3">
-                        <li className="flex items-center justify-between">
-                          <span className="text-muted-foreground">
-                            Totoal Storage
-                          </span>
-                          <span>15 GB</span>
-                        </li>
-
-                        <li className="flex items-center justify-between">
-                          <span className="text-muted-foreground">
-                            Used Storage
-                          </span>
-                          <span>{`${directoryInfo?.totalSizeGB} GB`}</span>
-                        </li>
-
-                        <Progress value={directoryInfo?.totalSizeGB} className="h-10 rounded-[5px]" />
-                      </ul>
-
-                      <Separator className="my-2" />
-                      <ul className="grid gap-3">
-                        <li className="flex items-center justify-between">
-                          <span className="text-muted-foreground">Folders</span>
-                          <span>{directoryInfo?.numFolders}</span>
-                        </li>
-                        <li className="flex items-center justify-between">
-                          <span className="text-muted-foreground">Files</span>
-                          <span>{directoryInfo?.numFiles}</span>
-                        </li>
-                        <li className="flex items-center justify-between">
-                          <span className="text-muted-foreground">Photos</span>
-                          <span>{directoryInfo?.numImages}</span>
-                        </li>
-                        <li className="flex items-center justify-between font-semibold">
-                          <span className="text-muted-foreground">Total</span>
-                          <span>{`${directoryInfo?.totalSizeGB} GB`}</span>
-                        </li>
-                      </ul>
-                    </div>
-                  </CardContent>
-
-                  <CardFooter className="flex flex-row items-center border-t bg-muted/50 px-6 py-3">
-                    <div className="text-xs text-muted-foreground">
-                      Updated <time dateTime="2023-11-23">{directoryInfo?.currentDate}</time>
-                    </div>
-                    <Pagination className="ml-auto mr-0 w-auto" aria-disabled>
-                      <PaginationContent>
-                        <PaginationItem>
-                          <Button disabled size="icon" variant="outline" className="h-6 w-6">
-                            <ChevronLeft className="h-3.5 w-3.5" />
-                            <span className="sr-only">Previous Order</span>
+                        <div className="ml-auto flex items-center gap-1">
+                          <Button size="sm" variant="outline" className="h-8 gap-1">
+                            <span className="lg:sr-only xl:not-sr-only xl:whitespace-nowrap">
+                              Own Cloud Drive
+                            </span>
                           </Button>
-                        </PaginationItem>
-                        <PaginationItem>
-                          <Button disabled size="icon" variant="outline" className="h-6 w-6">
-                            <ChevronRight className="h-3.5 w-3.5" />
-                            <span className="sr-only">Next Order</span>
-                          </Button>
-                        </PaginationItem>
-                      </PaginationContent>
-                    </Pagination>
-                  </CardFooter>
-                </Card>
-              </div>
-            </main>
+                        </div>
+                      </CardHeader>
+
+                      <CardContent className="p-6 text-sm w-full">
+                        <div className="grid gap-3">
+                          <div className="font-semibold">Storage</div>
+                          <ul className="grid gap-3">
+                            <li className="flex items-center justify-between">
+                              <span className="text-muted-foreground">
+                                Totoal Storage
+                              </span>
+                              <span>15 GB</span>
+                            </li>
+
+                            <li className="flex items-center justify-between">
+                              <span className="text-muted-foreground">
+                                Used Storage
+                              </span>
+                              <span>{`${directoryInfo?.totalSizeGB} GB`}</span>
+                            </li>
+
+                            <Progress value={directoryInfo?.totalSizeGB} className="h-10 rounded-[5px]" />
+                          </ul>
+
+                          <Separator className="my-2" />
+                          <ul className="grid gap-3">
+                            <li className="flex items-center justify-between">
+                              <span className="text-muted-foreground">Folders</span>
+                              <span>{directoryInfo?.numFolders}</span>
+                            </li>
+                            <li className="flex items-center justify-between">
+                              <span className="text-muted-foreground">Files</span>
+                              <span>{directoryInfo?.numFiles}</span>
+                            </li>
+                            <li className="flex items-center justify-between">
+                              <span className="text-muted-foreground">Photos</span>
+                              <span>{directoryInfo?.numImages}</span>
+                            </li>
+                            <li className="flex items-center justify-between font-semibold">
+                              <span className="text-muted-foreground">Total</span>
+                              <span>{`${directoryInfo?.totalSizeGB} GB`}</span>
+                            </li>
+                          </ul>
+                        </div>
+                      </CardContent>
+
+                      <CardFooter className="flex flex-row items-center border-t bg-muted/50 px-6 py-3">
+                        <div className="text-xs text-muted-foreground">
+                          Updated <time dateTime="2023-11-23">{directoryInfo?.currentDate}</time>
+                        </div>
+                        <Pagination className="ml-auto mr-0 w-auto" aria-disabled>
+                          <PaginationContent>
+                            <PaginationItem>
+                              <Button disabled size="icon" variant="outline" className="h-6 w-6">
+                                <ChevronLeft className="h-3.5 w-3.5" />
+                                <span className="sr-only">Previous Order</span>
+                              </Button>
+                            </PaginationItem>
+                            <PaginationItem>
+                              <Button disabled size="icon" variant="outline" className="h-6 w-6">
+                                <ChevronRight className="h-3.5 w-3.5" />
+                                <span className="sr-only">Next Order</span>
+                              </Button>
+                            </PaginationItem>
+                          </PaginationContent>
+                        </Pagination>
+                      </CardFooter>
+                    </Card>
+                  </div>
+                </main>
+              ) : selectedRoot.includes("Settings") ? (
+                <main className="flex min-h-[calc(100vh_-_theme(spacing.16))] flex-1 flex-col gap-4 p-4 md:gap-8 md:p-10">
+                  <div className="mx-auto grid w-full max-w-6xl gap-2">
+                    <h1 className="text-3xl font-semibold">Settings</h1>
+                  </div>
+
+                  <div className="mx-auto grid w-full max-w-6xl items-start gap-6 md:grid-cols-[180px_1fr] lg:grid-cols-[250px_1fr]">
+                    <nav
+                      className="grid gap-4 text-sm text-muted-foreground" x-chunk="dashboard-04-chunk-0"
+                    >
+                      <Link href="#" className="font-semibold text-primary">
+                        General
+                      </Link>
+                      <Link href="#">Security</Link>
+                      <Link href="#">Integrations</Link>
+                      <Link href="#">Support</Link>
+                      <Link href="#">Organizations</Link>
+                      <Link href="#">Advanced</Link>
+                    </nav>
+                    <div className="grid gap-6">
+                      <Card x-chunk="dashboard-04-chunk-1">
+                        <CardHeader>
+                          <CardTitle>Store Name</CardTitle>
+                          <CardDescription>
+                            Used to identify your store in the marketplace.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <form>
+                            <Input placeholder="Store Name" />
+                          </form>
+                        </CardContent>
+                        <CardFooter className="border-t px-6 py-4">
+                          <Button>Save</Button>
+                        </CardFooter>
+                      </Card>
+                      <Card x-chunk="dashboard-04-chunk-2">
+                        <CardHeader>
+                          <CardTitle>Plugins Directory</CardTitle>
+                          <CardDescription>
+                            The directory within your project, in which your plugins are
+                            located.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <form className="flex flex-col gap-4">
+                            <Input
+                              placeholder="Project Name"
+                              defaultValue="/content/plugins"
+                            />
+                            <div className="flex items-center space-x-2">
+                              <Checkbox id="include" defaultChecked />
+                              <label
+                                htmlFor="include"
+                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                              >
+                                Allow administrators to change the directory.
+                              </label>
+                            </div>
+                          </form>
+                        </CardContent>
+                        <CardFooter className="border-t px-6 py-4">
+                          <Button>Save</Button>
+                        </CardFooter>
+                      </Card>
+                    </div>
+                  </div>
+                </main>
+              ) : ("")}
+            </>
           )}
 
           {isDetectedDragAndDrop && (

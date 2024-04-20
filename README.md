@@ -3,6 +3,7 @@
 Pherus Drive is an open-source, self-hosted cloud storage solution inspired by platforms like Google Drive. Built on Node.js, Pherus Drive offers users the ability to store, manage, and share files securely while providing complete control over data privacy.
 
 # Key Features
+
 1. Self-Hosted: Host your own cloud storage solution, giving you full control over your data.
 Multi-User Support: Allow multiple users to create accounts and access the storage, making it suitable for personal and team use.
 
@@ -20,15 +21,19 @@ Multi-User Support: Allow multiple users to create accounts and access the stora
 
 ## Desktop View
 
-![Desktop View 1](1.png)
+![Desktop View 1](img/1.png)
 
-![Desktop View 2](2.png)
+![Desktop View 2](img/2.png)
 
-![Mobile View 1](3.png)
+![Desktop View 2](img/2.1.png)
+
+![Desktop View 2](img/2.2.png)
+
+![Mobile View 1](img/3.png)
 
 ## Mobile View
 
-![Mobile View 2](4.png) | ![Mobile View 3](5.png)
+![Mobile View 2](img/4.png) | ![Mobile View 3](img/5.png)
 
 # Why Pherus Drive?
 Pherus Drive aims to democratize cloud storage by providing a flexible, accessible, and community-driven alternative to proprietary platforms. Whether you're an individual looking for personal file management or an organization seeking collaborative solutions, Pherus Drive offers the tools and freedom to tailor your cloud experience to your unique requirements.
