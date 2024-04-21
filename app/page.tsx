@@ -58,7 +58,6 @@ import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogT
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu"
 import { useToast } from "@/components/ui/use-toast"
 import { ImageUpload } from "@/components/upload/mage-upload"
-import { DirectoryInfo } from "@/types/directoryinfor"
 import { Progress } from "@/components/ui/progress"
 import { signOut } from "firebase/auth"
 import { auth } from "@/config/config"
@@ -66,12 +65,12 @@ import { decryptData } from "@/components/encryption/encypt"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Theme } from "@/components/theme/theme"
 import { Drawer, DrawerClose, DrawerContent, DrawerTrigger } from "@/components/ui/drawer"
+import { SiderBar } from "@/components/header/sidebar"
+import { Header } from "@/components/header/header"
+import { DragDropZone } from "@/components/upload/drag-dropzone"
+import { DirectoryInfo, FileProp } from "@/types/property"
 
-interface FileProp {
-  name: string;
-  size: number;
-  type: string;
-}
+
 
 export default function Index() {
   const { toast } = useToast()
@@ -89,7 +88,7 @@ export default function Index() {
   const menus = [
     {
       name: "Home",
-      icons: <Cloud className={`h-5 w-5 ${selectedRoot.includes("Home") ? ("stroke-white") : ("stroke-black hover:stroke-black")}`}/>
+      icons: <Cloud className={`h-5 w-5 ${selectedRoot.includes("Home") ? ("stroke-white") : ("stroke-violet-500 hover:stroke-violet-500")}`} />
     }
   ]
 
@@ -349,161 +348,22 @@ export default function Index() {
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
-      <aside className="fixed inset-y-0 left-0 z-10 hidden w-14 flex-col border-r bg-background sm:flex">
-        <nav className="flex flex-col items-center gap-4 px-2 sm:py-4">
-          <Link
-            href="#"
-            className="group flex h-12 w-12 shrink-0 items-center justify-center gap-2 rounded-full bg-violet-500 text-lg font-semibold text-primary-foreground md:h-12 md:w-12 md:text-base"
-          >
-            <Cloudy className="h-8 w-8 transition-all group-hover:scale-110" />
-            <span className="sr-only">Pherus Drive</span>
-          </Link>
-
-          {menus.map((item, index) => (
-            <TooltipProvider key={index}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setSelectedRoot(item.name)}
-                    className={`rounded-full ${selectedRoot.includes(item.name) ? ("bg-violet-500 stroke-white") : ("stroke-black")}`}
-                  >
-                    {item.icons}
-                    <span className="sr-only">{item.name}</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="right">{item.name}</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          ))}
-        </nav>
-
-        <nav className="mt-auto flex flex-col items-center gap-4 px-2 sm:py-4">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className={`rounded-full ${selectedRoot.includes("Settings") ? ("bg-violet-500") : ("")}`}
-                  onClick={() => setSelectedRoot("Settings")}
-                >
-                  <Settings className={`h-5 w-5 ${selectedRoot.includes("Settings") ? ("stroke-white") : ("stroke-black hover:stroke-black")}`}/>
-                  <span className="sr-only">Settings</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right">Settings</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </nav>
-      </aside>
+      <SiderBar
+        sidevar={selectedRoot}
+        sidemenu={menus}
+        sidesel={(value) => setSelectedRoot(value)}
+      />
 
       <div className="flex flex-col sm:gap-4 sm:py-4 sm:pl-14">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button size="icon" variant="outline" className="sm:hidden">
-                <PanelLeft className="h-5 w-5" />
-                <span className="sr-only">Toggle Menu</span>
-              </Button>
-            </SheetTrigger>
-
-            <SheetContent side="left" className="sm:max-w-xs">
-              <nav className="grid gap-3 text-lg font-medium">
-                <div className="flex flex-row gap-3 items-center">
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="rounded-full"
-                  >
-                    <Cloudy className="h-5 w-5 transition-all group-hover:scale-110" />
-                  </Button>
-                  <h1 className="text-lg font-bold">Pherus Drive</h1>
-                </div>
-
-                {menus.map((item, index) => (
-                  <Button
-                    key={index}
-                    variant="ghost"
-                    onClick={() => setSelectedRoot(item.name)}
-                    className={`flex flex-row gap-3 justify-start h-14 items-center px-2.5 text-foreground ${selectedRoot.includes(item.name) ? ("bg-accent") : ("")}`}
-                  >
-                    {item.icons}
-                    {item.name}
-                  </Button>
-                ))}
-
-                <Button
-                  variant="ghost"
-                  onClick={() => setSelectedRoot("Settings")}
-                  className={`flex flex-row gap-3 justify-start h-14 items-center px-2.5 text-foreground ${selectedRoot.includes("Settings") ? ("bg-accent") : ("")}`}
-                >
-                  <LineChart className="h-5 w-5" />
-                  Settings
-                </Button>
-              </nav>
-            </SheetContent>
-          </Sheet>
-
-          <Breadcrumb className="hidden md:flex">
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink asChild onClick={() => setPath("")}>
-                  <h2>All Files</h2>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-
-              {currentPath.split('/').map((pathSegment, index, segments) => (
-                <React.Fragment key={index}>
-                  <BreadcrumbSeparator />
-                  <BreadcrumbItem>
-                    <BreadcrumbLink asChild onClick={() => setPath(segments.slice(0, index + 1).join('/'))}>
-                      <h2>{pathSegment}</h2>
-                    </BreadcrumbLink>
-                  </BreadcrumbItem>
-                </React.Fragment>
-              ))}
-            </BreadcrumbList>
-          </Breadcrumb>
-
-          <div className="relative ml-auto flex-1 md:grow-0">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search..."
-              className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[320px]"
-            />
-          </div>
-
-          <Theme />
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                className="overflow-hidden rounded-full"
-              >
-                <Image
-                  src={avatars?.toString()}
-                  width={36}
-                  height={36}
-                  alt="Avatar"
-                  className="overflow-hidden rounded-full"
-                />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setSelectedRoot("Settings")}>Settings</DropdownMenuItem>
-              <DropdownMenuItem>Support</DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => handleLogout()}>Logout</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </header>
+        <Header
+          avatar={avatars.toString()}
+          headerVal={selectedRoot}
+          headerCurrentPath={currentPath}
+          headerMenu={menus}
+          headerSel={(value) => setSelectedRoot(value)}
+          headerPath={(value) => setPath(value)}
+          headerLogout={handleLogout}
+        />
 
         <div
           className="flex items-center justify-center w-full h-full"
@@ -921,32 +781,7 @@ export default function Index() {
           )}
 
           {isDetectedDragAndDrop && (
-            <div
-              className="fixed inset-0 z-10 bg-opacity-50 flex items-center justify-center rounded-lg border border-dashed shadow-sm"
-            >
-              <label htmlFor="dropzone-file" className="">
-                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  <svg className="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
-                    <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2" />
-                  </svg>
-                  <p className="mb-2 text-sm text-gray-500 dark:text-gray-400"><span className="font-semibold">Drag and</span> drop here to upload</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Files, Folders, Images, Music, Compressed etc (MAX. 800x400px)</p>
-                </div>
-
-                <input
-                  type="file"
-                  id="uploads"
-                  className="hidden"
-                  onChange={(e) => {
-                    // Handle file selection here
-                    const files = e.target.files;
-                    if (files && files.length > 0) {
-                      console.log('Files selected:', files);
-                    }
-                  }}
-                />
-              </label>
-            </div>
+            <DragDropZone id={"uploads"} />
           )}
         </div>
       </div>

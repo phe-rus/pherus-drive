@@ -38,7 +38,7 @@ export async function PUT(request: Request) {
         // Filter out folders and images
         const folders = fileStats.filter((file) => file.stats.isDirectory());
         const images = fileStats.filter((file) =>
-            /\.(jpg|jpeg|png|gif)$/i.test(file.name)
+            /\.(jpg|jpeg|png|gif|webp|avif)$/i.test(file.name)
         );
 
         // Calculate total size in bytes

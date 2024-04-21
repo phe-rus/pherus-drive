@@ -1,15 +1,16 @@
 "use client";
 
-import { ReactNode, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "../ui/button";
-import { LucideLockKeyhole } from "lucide-react";
+import { LucideCloudy, LucideLockKeyhole } from "lucide-react";
 import { GoogleAuthProvider, signInWithPopup } from "@firebase/auth";
 import { auth } from "@/config/config";
 import { encryptData } from "../encryption/encypt";
 import { toast } from "../ui/use-toast";
 import { Progress } from "../ui/progress";
+import { AuthProps } from "@/types/property";
 
-export const Auths = ({ children, loading }: AuthProps) => {
+export const Auths = ({ children }: AuthProps) => {
     const [loadingPercentage, setLoadingPercentage] = useState(0);
     const [currentUser, setCurrentUser] = useState<boolean>(false);
 
@@ -105,13 +106,26 @@ export const Auths = ({ children, loading }: AuthProps) => {
                 currentUser ? (
                     <>{children}</>
                 ) : (
-                    <section className="flex flex-col w-full h-full items-center justify-center">
+                    <section className="flex flex-col w-full h-full items-center justify-center bg-muted/40">
                         <div className="flex flex-col gap-10 justify-center items-center">
                             <Button variant="secondary" className="flex flex-row gap-3 size-[129px] z-[50] rounded-full zigzag"
-                                onClick={() => signInWithGoogle()}>
-                                <LucideLockKeyhole className="h-10 w-10 stroke-violet-500" />
+                                onClick={() => {
+                                    currentUser ? (
+                                        ""
+                                    ) : (
+                                        signInWithGoogle()
+                                    )
+                                }}>
+                                {
+                                    loadingPercentage > 1 ? (
+                                        <LucideCloudy className="h-20 w-20 stroke-violet-500" />
+                                    ) : (
+                                        <LucideLockKeyhole className="h-10 w-10 stroke-violet-500" />
+                                    )
+                                }
+
                             </Button>
-                            <Progress value={loadingPercentage} className="border-dashed dark:bg-black/40 z-[50]"/>
+                            <Progress value={loadingPercentage} className="border-dashed dark:bg-black/40 z-[50]" />
                         </div>
                     </section>
                 )
@@ -119,8 +133,3 @@ export const Auths = ({ children, loading }: AuthProps) => {
         </div>
     );
 };
-
-interface AuthProps {
-    children: ReactNode;
-    loading: number;
-}
