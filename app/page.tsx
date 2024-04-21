@@ -7,11 +7,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Cloud,
-  Cloudy,
-  LineChart,
-  PanelLeft,
-  Search,
-  Settings,
   X,
 } from "lucide-react"
 import {
@@ -30,14 +25,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import {
   Pagination,
@@ -45,13 +32,6 @@ import {
   PaginationItem,
 } from "@/components/ui/pagination"
 import { Separator } from "@/components/ui/separator"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
 import { useEffect, useState } from "react"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -63,13 +43,12 @@ import { signOut } from "firebase/auth"
 import { auth } from "@/config/config"
 import { decryptData } from "@/components/encryption/encypt"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Theme } from "@/components/theme/theme"
 import { Drawer, DrawerClose, DrawerContent, DrawerTrigger } from "@/components/ui/drawer"
 import { SiderBar } from "@/components/header/sidebar"
 import { Header } from "@/components/header/header"
 import { DragDropZone } from "@/components/upload/drag-dropzone"
 import { DirectoryInfo, FileProp } from "@/types/property"
-
+import { Downloader } from "@/components/midlevel/midlevel"
 
 
 export default function Index() {
@@ -82,6 +61,7 @@ export default function Index() {
   const [isDetectedDragAndDrop, setIsDetectedDragAndDrop] = useState(false);
   const [fileData, setFileData] = useState<FileProp[]>([]);
   const [createdFolderName, createfolder] = useState("")
+  const [contextMneus, setContextMenus] = useState("")
 
   const [directoryInfo, setDirectoryInfo] = useState<DirectoryInfo | null>(null);
 
@@ -200,6 +180,21 @@ export default function Index() {
         return response.json();
       })
       .catch(error => console.error('Error fetching files:', error))
+  }
+
+  const handleDownloads = (name: string) => {
+    {
+      currentPath && currentPath !== "" ? (
+        Downloader(
+          `/${currentPath}/${currentUid}/${name}`,
+          name
+        )) : (
+        Downloader(
+          `/${currentUid}/${name}`,
+          name
+        )
+      )
+    }
   }
 
   const deleteFile = (
@@ -346,6 +341,33 @@ export default function Index() {
     refreshWebsite()
   }
 
+  const longPressHandler = (value: string) => {
+    let timeout: string | number | NodeJS.Timeout | undefined;
+    const duration = 500; // Adjust the duration as needed for the long press
+
+    const start = () => {
+      timeout = setTimeout(() => {
+        setContextMenus(value);
+      }, duration);
+    };
+
+    const cancel = () => {
+      clearTimeout(timeout);
+    };
+
+    const clickHandler = () => {
+      setContextMenus(value);
+    };
+
+    return {
+      onTouchStart: start,
+      onTouchEnd: cancel,
+      onMouseDown: start,
+      onMouseUp: cancel,
+      onClick: clickHandler,
+    };
+  };
+
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
       <SiderBar
@@ -398,8 +420,8 @@ export default function Index() {
                   </Breadcrumb>
                   <div className="grid auto-rows-max items-start gap-4 md:gap-8 lg:col-span-2">
                     <Dialog>
-                      <ContextMenu >
-                        <ContextMenuTrigger className="w-full md:h-screen">
+                      <ContextMenu>
+                        <ContextMenuTrigger className="w-full h-full md:h-screen">
                           <div className="grid gap-4 grid-cols-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-6 xl:grid-cols-6 h-fit w-full">
                             {fileData
                               .sort((a, b) => {
@@ -563,6 +585,7 @@ export default function Index() {
                                       item.type
                                     )}>Delete</ContextMenuItem>
                                     <ContextMenuItem>Share</ContextMenuItem>
+                                    <ContextMenuItem onClick={() => handleDownloads(item.name)}>Download</ContextMenuItem>
                                   </ContextMenuContent>
                                 </ContextMenu>
                               ))}

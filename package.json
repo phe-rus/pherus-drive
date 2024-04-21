@@ -33,6 +33,7 @@
     "firebase": "^10.11.0",
     "lucide-react": "^0.366.0",
     "material-symbols": "^0.17.1",
+    "mime": "^4.0.1",
     "multer": "^1.4.5-lts.1",
     "next": "14.1.4",
     "next-themes": "^0.3.0",
@@ -47,6 +48,7 @@
   },
   "devDependencies": {
     "@types/firebase": "^3.2.1",
+    "@types/mime": "^4.0.0",
     "@types/multer": "^1.4.11",
     "@types/node": "^20",
     "@types/react": "^18",
