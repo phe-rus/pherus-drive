@@ -6,7 +6,7 @@ import path from 'path';
 export async function POST(request: Request) {
     try {
         const { uid } = await request.json();
-        const directoryPath = `./public/${uid}`;
+        const directoryPath = `${process.env.ROOT_PATH}/${uid}`;
 
         // Check if directory already exists
         if (fs.existsSync(directoryPath)) {

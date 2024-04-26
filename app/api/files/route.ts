@@ -9,9 +9,9 @@ export async function POST(request: Request) {
     let directoryPath: string;
 
     if (currentPath === "" && currentUser !== "") {
-        directoryPath = `./public/${currentUser}`;
+        directoryPath = `${process.env.ROOT_PATH}/${currentUser}`;
     } else {
-        directoryPath = `./public/${currentUser}/${currentPath}`;
+        directoryPath = `${process.env.ROOT_PATH}/${currentUser}/${currentPath}`;
     }
 
     try {

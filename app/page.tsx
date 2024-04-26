@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import Image from "next/image"
-import Link from "next/link"
 import {
   ChevronLeft,
   ChevronRight,
@@ -42,7 +41,6 @@ import { Progress } from "@/components/ui/progress"
 import { signOut } from "firebase/auth"
 import { auth } from "@/config/config"
 import { decryptData } from "@/components/encryption/encypt"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Drawer, DrawerClose, DrawerContent, DrawerTrigger } from "@/components/ui/drawer"
 import { SiderBar } from "@/components/header/sidebar"
 import { Header } from "@/components/header/header"
@@ -497,7 +495,7 @@ export default function Index() {
                                               {currentPath && currentPath !== "" ? (
                                                 <Image
                                                   alt="file"
-                                                  src={`/${currentUid}/${currentPath}/${item.name}`}
+                                                  src={ `/storage/${currentUid}/${currentPath}/${item.name}`}
                                                   width={1000}
                                                   height={1000}
                                                   loading="lazy"
@@ -506,7 +504,7 @@ export default function Index() {
                                               ) : (
                                                 <Image
                                                   alt="file"
-                                                  src={`/${currentUid}/${item.name}`}
+                                                  src={`/storage/${currentUid}/${item.name}`}
                                                   width={1000}
                                                   height={1000}
                                                   loading="lazy"
@@ -517,7 +515,7 @@ export default function Index() {
 
                                             <DialogContent className="p-1 rounded-[8px] shrink-0 shadow-none"
                                               style={{
-                                                backgroundImage: `url("/${currentUid}/${item.name}") no-repeat center center fixed`,
+                                                backgroundImage: `url("/storage/${currentUid}/${item.name}") no-repeat center center fixed`,
                                                 backgroundSize: "cover",
                                                 WebkitBackgroundSize: "auto"
                                               }}>
@@ -525,7 +523,7 @@ export default function Index() {
                                                 {currentPath && currentPath !== "" ? (
                                                   <Image
                                                     alt="file"
-                                                    src={`/${currentUid}/${currentPath}/${item.name}`}
+                                                    src={`/storage/${currentUid}/${currentPath}/${item.name}`}
                                                     width={1000}
                                                     height={1000}
                                                     priority={true}
@@ -534,7 +532,7 @@ export default function Index() {
                                                 ) : (
                                                   <Image
                                                     alt="file"
-                                                    src={`/${currentUid}/${item.name}`}
+                                                    src={`/storage/${currentUid}/${item.name}`}
                                                     width={1000}
                                                     height={1000}
                                                     priority={true}
@@ -603,12 +601,14 @@ export default function Index() {
                           </div>
 
                           <DialogFooter>
-                            <Button variant="outline" size="sm" className="rounded-full"
-                              onClick={() => createFolder()}>
-                              <DialogClose>
-                                Create Folder
-                              </DialogClose>
-                            </Button>
+                            <DialogClose>
+                              <Button variant="outline" size="sm" className="rounded-full"
+                                onClick={() => createFolder()}>
+                                <DialogClose>
+                                  Create Folder
+                                </DialogClose>
+                              </Button>
+                            </DialogClose>
                           </DialogFooter>
                         </DialogContent>
                       )}

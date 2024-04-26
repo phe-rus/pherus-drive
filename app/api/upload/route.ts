@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     const currentPath = formData.get("currentPath") as string;
     const uid = formData.get("uid") as string;
 
-    const uploadDir = currentPath ? `./public/${uid}/${currentPath}` : `./public/${uid}`;
+    const uploadDir = currentPath ? `${process.env.ROOT_PATH}/${uid}/${currentPath}` : `${process.env.ROOT_PATH}/${uid}`;
     const filePath = path.join(uploadDir, filename);
 
     try {

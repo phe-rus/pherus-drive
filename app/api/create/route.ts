@@ -11,9 +11,9 @@ export async function PUT(request: Request) {
 
         // Construct the directory path based on the current path
         if (currentPath === "") {
-            directoryPath = `./public/${currentUid}`;
+            directoryPath = `${process.env.ROOT_PATH}/${currentUid}`;
         } else {
-            directoryPath = `./public/${currentUid}/${currentPath}`;
+            directoryPath = `${process.env.ROOT_PATH}/${currentUid}/${currentPath}`;
         }
 
         // Create the directory

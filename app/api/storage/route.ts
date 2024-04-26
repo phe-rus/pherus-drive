@@ -12,7 +12,7 @@ interface DirectoryInfo {
 
 export async function PUT(request: Request) {
     const { uid } = await request.json();
-    const directoryPath = `./public/${uid}`;
+    const directoryPath = `${process.env.ROOT_PATH}/${uid}`;
     const fullPath = path.join(process.cwd(), directoryPath);
 
     try {
